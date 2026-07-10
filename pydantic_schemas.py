@@ -4,7 +4,7 @@ from typing import Dict, List
 class UniqueDropPayLoad(BaseModel): 
     instance_id: int
     area_name: str
-    uniques: Dict[str, List[str]]
+    uniques: Dict[str, tuple[str, str]]
     
 class MapAnalyticsRow(BaseModel):
     map_name: str
@@ -14,5 +14,5 @@ class MapAnalyticsRow(BaseModel):
     t1_uniques: dict[str, int]  
 
 class FullAnalyticsResponse(BaseModel):
-    rows: list[MapAnalyticsRow]
     grand_total: int
+    rows: list[MapAnalyticsRow]

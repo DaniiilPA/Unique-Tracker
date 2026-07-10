@@ -10,7 +10,7 @@ from security import verify_api_key
 
 router = APIRouter()
 
-@router.get("/api/stats/")
+@router.get("/api/stats")
 async def give_stats(maps: int, db: AsyncSession = Depends(get_db), _ : str = Security(verify_api_key)):
     try:
         records = await get_all_uniques(db=db, maps_num=maps)
@@ -22,7 +22,7 @@ async def give_stats(maps: int, db: AsyncSession = Depends(get_db), _ : str = Se
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
-@router.post("/api/drops/")
+@router.post("/api/drops")
 async def receive_drops(data: UniqueDropPayLoad, db: AsyncSession = Depends(get_db), _ : str = Security(verify_api_key)):
     try:    
         await save_or_merge_drops(db=db, 

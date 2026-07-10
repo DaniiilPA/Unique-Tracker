@@ -62,7 +62,7 @@ async def get_all_uniques(db: AsyncSession, maps_num: int):
     
     stmt = (
         select(MapDrop)
-        .where(MapDrop.area_name.in_(ALLOWED_AREAS))
+        # .where(MapDrop.area_name.in_(ALLOWED_AREAS))
         .order_by(desc(MapDrop.updated_at))
         .limit(maps_num)
     )

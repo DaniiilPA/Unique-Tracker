@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.concurrency import run_in_threadpool
@@ -6,8 +6,9 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic_schemas import UniqueDropPayLoad
 from analyzer import transform_db_records_to_analytics
 from depends import get_db, MapDrop, save_or_merge_drops, get_all_uniques
+from security import verify_api_key
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_api_key)])
 
 @router.get("/api/stats/")
 async def give_stats(maps: int, db: AsyncSession = Depends(get_db)):

@@ -15,4 +15,6 @@ class MapAnalyticsRow(BaseModel):
 
 class FullAnalyticsResponse(BaseModel):
     grand_total: int
+    t0_uniques: dict[str, int]  
+    t1_uniques: dict[str, int]  
     rows: list[MapAnalyticsRow]

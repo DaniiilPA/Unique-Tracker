@@ -17,6 +17,8 @@ T1_ITEMS = ["Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Ecl
 def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsResponse:
     analytics_rows = []
     grand_total = 0
+    t0_total_grand = {}
+    t1_total_grand = {}
     
     for record in records:
         uniques_dict: dict = record.uniques
@@ -30,8 +32,9 @@ def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsRe
             
             if item_name in T0_ITEMS:
                 t0[item_name] = t0.get(item_name, 0) + 1
+                t0_total_grand[item_name] = t0_total_grand.get(item_name, 0) + 1
             elif item_name in T1_ITEMS:
-                t1[item_name] = t1.get(item_name, 0) + 1
+                t1_total_grand[item_name] = t1_total_grand.get(item_name, 0) + 1
                 
         analytics_rows.append(
             MapAnalyticsRow(
@@ -44,4 +47,4 @@ def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsRe
         )
         grand_total += total_count
         
-    return FullAnalyticsResponse(grand_total=grand_total, rows=analytics_rows)
+    return FullAnalyticsResponse(grand_total=grand_total, t0_uniques=t0_total_grand, t1_uniques=t1_total_grand, rows=analytics_rows)

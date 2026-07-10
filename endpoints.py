@@ -8,10 +8,10 @@ from analyzer import transform_db_records_to_analytics
 from depends import get_db, MapDrop, save_or_merge_drops, get_all_uniques
 from security import verify_api_key
 
-router = APIRouter(dependencies=[Depends(verify_api_key)])
+router = APIRouter()
 
 @router.get("/api/stats/")
-async def give_stats(maps: int, db: AsyncSession = Depends(get_db)):
+async def give_stats(maps: int, db: AsyncSession = Depends(get_db), _ : str = Security(verify_api_key)):
     try:
         records = await get_all_uniques(db=db, maps_num=maps)
         
@@ -23,7 +23,7 @@ async def give_stats(maps: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
 @router.post("/api/drops/")
-async def receive_drops(data: UniqueDropPayLoad, db: AsyncSession = Depends(get_db)):
+async def receive_drops(data: UniqueDropPayLoad, db: AsyncSession = Depends(get_db), _ : str = Security(verify_api_key)):
     try:    
         await save_or_merge_drops(db=db, 
                                 instance_id=data.instance_id, 

@@ -47,4 +47,4 @@ def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsRe
         )
         grand_total += total_count
         
-    return FullAnalyticsResponse(grand_total=grand_total, t0_uniques=t0_total_grand, t1_uniques=t1_total_grand, rows=analytics_rows)
+    return FullAnalyticsResponse(grand_total=grand_total, t0_grand_total=t0_total_grand, t1_grand_total=t1_total_grand, rows=analytics_rows)

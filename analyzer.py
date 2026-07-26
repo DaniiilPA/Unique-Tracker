@@ -34,6 +34,7 @@ def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsRe
                 t0[item_name] = t0.get(item_name, 0) + 1
                 t0_total_grand[item_name] = t0_total_grand.get(item_name, 0) + 1
             elif item_name in T1_ITEMS:
+                t1[item_name] = t1.get(item_name, 0) + 1
                 t1_total_grand[item_name] = t1_total_grand.get(item_name, 0) + 1
                 
         analytics_rows.append(

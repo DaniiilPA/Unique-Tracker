@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,9 +12,16 @@ from security import verify_api_key
 router = APIRouter()
 
 @router.get("/api/stats")
-async def give_stats(maps: int, db: AsyncSession = Depends(get_db), _ : str = Security(verify_api_key)):
+async def give_stats(maps: int,
+                     date_from: date | None = None,
+                     date_to: date | None = None,
+                     db: AsyncSession = Depends(get_db),
+                     _ : str = Security(verify_api_key)):
     try:
-        records = await get_all_uniques(db=db, maps_num=maps)
+        records = await get_all_uniques(db=db, 
+                                        maps_num=maps, 
+                                        date_from=date_from, 
+                                        date_to=date_to)
         
         payload = await run_in_threadpool(
             transform_db_records_to_analytics, records

@@ -1,5 +1,5 @@
-import datetime
-from typing import AsyncGenerator
+from datetime import date, datetime, time
+from typing import AsyncGenerator, Optional
 from sqlalchemy import BigInteger, DateTime, func, select, desc
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -22,7 +22,7 @@ class MapDrop(Base):
     area_name: Mapped[str] = mapped_column(nullable=False)
     uniques: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     
-    updated_at: Mapped[datetime.datetime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True),
     server_default=func.now(),
     onupdate=func.now()
@@ -58,15 +58,20 @@ async def save_or_merge_drops(db: AsyncSession, instance_id: int, area_name: str
     await db.execute(upsert_stmt)
     
     
-async def get_all_uniques(db: AsyncSession, maps_num: int):
+async def get_all_uniques(
+    db: AsyncSession, 
+    maps_num: int,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None
+):
+    stmt = select(MapDrop)
     
-    stmt = (
-        select(MapDrop)
-        # .where(MapDrop.area_name.in_(ALLOWED_AREAS))
-        .order_by(desc(MapDrop.updated_at))
-        .limit(maps_num)
-    )
+    if date_from and date_to:
+        start_dt = datetime.combine(date_from, time.min)  
+        end_dt = datetime.combine(date_to, time.max)      
+        stmt = stmt.where(MapDrop.updated_at.between(start_dt, end_dt))
+        
+    stmt = stmt.order_by(desc(MapDrop.updated_at)).limit(maps_num)
     
     result = await db.execute(stmt)
-    
     return result.scalars().all()

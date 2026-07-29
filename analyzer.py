@@ -11,7 +11,7 @@ T1_ITEMS = ["Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Ecl
             "Immutable Force", "Inpulsa's Broken Heart", "Inspired Learning", "Intuitive Leap", "Kaom's Heart", "Kaom's Primacy", "Kintsugi", "Lioneye's Fall", "Maata's Teaching", "Machina Mitts",
             "Maloney's Mechanism", "Might of the Meek", "Mjölner", "Prism Guardian", "Pure Talent", "Rathpith Globe", "Rigwald's Hunt", "Rigwald's Quills", "Seven-League Step", "Shavronne's Revelation",
             "Shavronne's Wrappings", "Skyforth", "Stormshroud", "Sunblast", "Stormshroud", "Taste of Hate", "The Brass Dome", "The Covenant", "The Fourth Vow", "The Gull", "The Iron Fortress", "The Magnate",
-            "The Poet's Pen", "Thunderfist", "Unending Hunger", "Unnatural Instinct", "Utula's Hunger", "Void Battery", "Voll's Devotion", "Warrior's Legacy", "Windripper", "Witchbane"
+            "The Poet's Pen", "Thunderfist", "Unending Hunger", "Unnatural Instinct", "Utula's Hunger", "Void Battery", "Voll's Devotion", "Warrior's Legacy", "Windripper", "Witchbane", "Willclash"
             ]
 
 def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsResponse:

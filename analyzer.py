@@ -1,6 +1,6 @@
 from pydantic_schemas import MapAnalyticsRow, FullAnalyticsResponse
 from depends import MapDrop
-T0_ITEMS = ["Bino's Kitchen Knife", "Bloodseeker", "Defiance of Destiny", "Divinarius", "T0Ephemeral Edge", "Essentia Sanguis", "Headhunter", "Jiquani's Potential", "Kalandra's Touch", "Lioneye's Glare",
+T0_ITEMS = ["Bino's Kitchen Knife", "Bloodseeker", "Defiance of Destiny", "Divinarius", "Ephemeral Edge", "Essentia Sanguis", "Headhunter", "Jiquani's Potential", "Kalandra's Touch", "Lioneye's Glare",
             "Mageblood", "Marohi Erqi", "Rakiata's Dance", "Reefbane", "Soul Taker", "The Squire", "Varunastra", "Voltaxic Rift"
             ]
 T1_ITEMS = ["Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Eclipse Solaris", "Garukhan's Flight", "Gruthkul's Pelt", "Kitava's Feast", "Light of Lunaris", 

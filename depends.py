@@ -69,7 +69,7 @@ FROM map_drops
 WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
   AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
 ORDER BY updated_at DESC
-LIMIT :maps_num;
+LIMIT CASE WHEN :maps_num > 0 THEN :maps_num ELSE NULL END;
 """)
 
 async def get_raw_maps_from_db(

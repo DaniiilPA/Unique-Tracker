@@ -72,16 +72,17 @@ ORDER BY updated_at DESC
 LIMIT CASE WHEN :maps_num > 0 THEN :maps_num ELSE NULL END;
 """)
 
-async def get_raw_maps_from_db(
+async def stream_raw_maps_from_db(
     db: AsyncSession, 
     maps_num: int,
     date_from: Optional[date] = None,
-    date_to: Optional[date] = None
+    date_to: Optional[date] = None,
+    chunk_size: int = 1000
 ):
     start_dt = datetime.combine(date_from, time.min) if date_from else None
     end_dt = datetime.combine(date_to, time.max) if date_to else None
 
-    result = await db.execute(
+    result = await db.stream(
         SQL_FAST_MAPS_QUERY,
         {
             "maps_num": maps_num,
@@ -89,4 +90,6 @@ async def get_raw_maps_from_db(
             "end_dt": end_dt,
         }
     )
-    return result.all()
+
+    async for partition in result.partitions(chunk_size):
+        yield partition

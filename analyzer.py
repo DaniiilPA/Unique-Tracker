@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from depends import get_raw_maps_from_db
+from depends import stream_raw_maps_from_db
 from pydantic_schemas import FullAnalyticsResponse
 
 T0_ITEMS = {"Bino's Kitchen Knife", "Bloodseeker", "Defiance of Destiny", "Divinarius", "Ephemeral Edge", "Essentia Sanguis", "Headhunter", "Jiquani's Potential", "Kalandra's Touch", "Lioneye's Glare",
@@ -21,18 +21,18 @@ T1_ITEMS = {"Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Ecl
             "The Poet's Pen", "Thunderfist", "Unending Hunger", "Unnatural Instinct", "Utula's Hunger", "Void Battery", "Voll's Devotion", "Warrior's Legacy", "Windripper", "Witchbane", "Willclash"
             }
 
-def _process_analytics(raw_rows):
-    grand_total = 0
+def _process_chunk(chunk_rows):
+    chunk_grand_total = 0
     t0_grand = Counter()
     t1_grand = Counter()
     rows = []
 
-    for _, area_name, updated_at_str, uniques in raw_rows:
+    for _, area_name, updated_at_str, uniques in chunk_rows:
         if not uniques:
             uniques = {}
 
         total_map_uniques = len(uniques)
-        grand_total += total_map_uniques
+        chunk_grand_total += total_map_uniques
 
         t0_map = Counter()
         t1_map = Counter()
@@ -58,12 +58,7 @@ def _process_analytics(raw_rows):
             "t1_uniques": dict(t1_map)
         })
 
-    return {
-        "grand_total": grand_total,
-        "t0_grand_total": dict(t0_grand),
-        "t1_grand_total": dict(t1_grand),
-        "rows": rows
-    }
+    return chunk_grand_total, t0_grand, t1_grand, rows
 
 
 async def transform_db_records_to_analytics(
@@ -72,8 +67,29 @@ async def transform_db_records_to_analytics(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None
 ) -> FullAnalyticsResponse:
-    raw_rows = await get_raw_maps_from_db(db, maps_num, date_from, date_to)
+    grand_total = 0
+    t0_grand_total = Counter()
+    t1_grand_total = Counter()
+    all_rows = []
 
-    payload = await asyncio.to_thread(_process_analytics, raw_rows)
+
+    async for chunk in stream_raw_maps_from_db(db, maps_num, date_from, date_to, chunk_size=1000):
+
+        chunk_total, t0_chunk, t1_chunk, rows_chunk = await asyncio.to_thread(_process_chunk, chunk)
+
+
+        grand_total += chunk_total
+        t0_grand_total.update(t0_chunk)
+        t1_grand_total.update(t1_chunk)
+        all_rows.extend(rows_chunk)
+        
+        await asyncio.sleep(0)
+
+    payload = {
+        "grand_total": grand_total,
+        "t0_grand_total": dict(t0_grand_total),
+        "t1_grand_total": dict(t1_grand_total),
+        "rows": all_rows
+    }
 
     return FullAnalyticsResponse.model_validate(payload)

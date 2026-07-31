@@ -73,7 +73,7 @@ async def transform_db_records_to_analytics(
     all_rows = []
 
 
-    async for chunk in stream_raw_maps_from_db(db, maps_num, date_from, date_to, chunk_size=25):
+    async for chunk in stream_raw_maps_from_db(db, maps_num, date_from, date_to, chunk_size=5):
 
         chunk_total, t0_chunk, t1_chunk, rows_chunk = await asyncio.to_thread(_process_chunk, chunk)
 

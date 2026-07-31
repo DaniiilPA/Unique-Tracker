@@ -62,8 +62,8 @@ SQL_FULL_ANALYTICS_QUERY = text("""
 WITH filtered_maps AS (
     SELECT instance_id, area_name, updated_at, uniques
     FROM map_drops
-    WHERE (:date_from::timestamp IS NULL OR updated_at >= :start_dt)
-      AND (:date_to::timestamp IS NULL OR updated_at <= :end_dt)
+    WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
+      AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
     ORDER BY updated_at DESC
     LIMIT :maps_num
 ),
@@ -125,8 +125,8 @@ SELECT json_build_object(
 async def get_analytics_from_db(
     db: AsyncSession, 
     maps_num: int,
-    t0_items: list[str],
-    t1_items: list[str],
+    t0_items: list[str] | set[str],
+    t1_items: list[str] | set[str],
     date_from: Optional[date] = None,
     date_to: Optional[date] = None
 ) -> dict:
@@ -137,12 +137,10 @@ async def get_analytics_from_db(
         SQL_FULL_ANALYTICS_QUERY,
         {
             "maps_num": maps_num,
-            "date_from": start_dt,
-            "date_to": end_dt,
             "start_dt": start_dt,
             "end_dt": end_dt,
-            "t0_items": t0_items,
-            "t1_items": t1_items,
+            "t0_items": list(t0_items),
+            "t1_items": list(t1_items),
         }
     )
     return result.scalar_one()

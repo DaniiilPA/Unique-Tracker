@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import date
+import asyncio
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,14 +21,7 @@ T1_ITEMS = {"Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Ecl
             "The Poet's Pen", "Thunderfist", "Unending Hunger", "Unnatural Instinct", "Utula's Hunger", "Void Battery", "Voll's Devotion", "Warrior's Legacy", "Windripper", "Witchbane", "Willclash"
             }
 
-async def transform_db_records_to_analytics(
-    db: AsyncSession,
-    maps_num: int,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None
-) -> FullAnalyticsResponse:
-    raw_rows = await get_raw_maps_from_db(db, maps_num, date_from, date_to)
-
+def _process_analytics(raw_rows):
     grand_total = 0
     t0_grand = Counter()
     t1_grand = Counter()
@@ -64,11 +58,22 @@ async def transform_db_records_to_analytics(
             "t1_uniques": dict(t1_map)
         })
 
-    payload = {
+    return {
         "grand_total": grand_total,
         "t0_grand_total": dict(t0_grand),
         "t1_grand_total": dict(t1_grand),
         "rows": rows
     }
+
+
+async def transform_db_records_to_analytics(
+    db: AsyncSession,
+    maps_num: int,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None
+) -> FullAnalyticsResponse:
+    raw_rows = await get_raw_maps_from_db(db, maps_num, date_from, date_to)
+
+    payload = await asyncio.to_thread(_process_analytics, raw_rows)
 
     return FullAnalyticsResponse.model_validate(payload)

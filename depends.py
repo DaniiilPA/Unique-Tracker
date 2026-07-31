@@ -59,93 +59,34 @@ async def save_or_merge_drops(db: AsyncSession, instance_id: int, area_name: str
     await db.execute(upsert_stmt)
     
     
-SQL_FULL_ANALYTICS_QUERY = text("""
-WITH filtered_maps AS (
-    SELECT instance_id, area_name, updated_at, uniques
-    FROM map_drops
-    WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
-      AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
-    ORDER BY updated_at DESC
-    LIMIT :maps_num
-),
-expanded_items AS (
-    SELECT 
-        fm.instance_id,
-        fm.area_name,
-        fm.updated_at,
-        kv.value->>1 AS item_name,
-        (kv.value->>1 = ANY(:t0_items)) AS is_t0,
-        (kv.value->>1 = ANY(:t1_items)) AS is_t1
-    FROM filtered_maps fm
-    LEFT JOIN LATERAL jsonb_each(fm.uniques) kv ON TRUE
-),
-map_aggregates AS (
-    SELECT 
-        fm.instance_id,
-        fm.area_name,
-        to_char(fm.updated_at, 'DD.MM.YYYY HH24:MI') as updated_at_str,
-        (SELECT COUNT(*) FROM jsonb_object_keys(fm.uniques)) as total_uniques,
-        COALESCE(
-            (SELECT jsonb_object_agg(item_name, cnt) 
-             FROM (
-                 SELECT item_name, COUNT(*) as cnt 
-                 FROM expanded_items ei 
-                 WHERE ei.instance_id = fm.instance_id AND ei.is_t0 = TRUE
-                 GROUP BY item_name
-             ) t0_sub), '{}'::jsonb
-        ) as t0_uniques,
-        COALESCE(
-            (SELECT jsonb_object_agg(item_name, cnt) 
-             FROM (
-                 SELECT item_name, COUNT(*) as cnt 
-                 FROM expanded_items ei 
-                 WHERE ei.instance_id = fm.instance_id AND ei.is_t1 = TRUE
-                 GROUP BY item_name
-             ) t1_sub), '{}'::jsonb
-        ) as t1_uniques
-    FROM filtered_maps fm
-)
-SELECT json_build_object(
-    'grand_total', COALESCE((SELECT SUM(total_uniques) FROM map_aggregates), 0),
-    't0_grand_total', COALESCE(
-        (SELECT jsonb_object_agg(item_name, cnt) 
-         FROM (SELECT item_name, COUNT(*) as cnt FROM expanded_items WHERE is_t0 = TRUE GROUP BY item_name) g0), '{}'::jsonb
-    ),
-    't1_grand_total', COALESCE(
-        (SELECT jsonb_object_agg(item_name, cnt) 
-         FROM (SELECT item_name, COUNT(*) as cnt FROM expanded_items WHERE is_t1 = TRUE GROUP BY item_name) g1), '{}'::jsonb
-    ),
-    'rows', COALESCE(
-        (SELECT json_agg(json_build_object(
-            'map_name', area_name,
-            'updated_at', updated_at_str,
-            'total_uniques', total_uniques,
-            't0_uniques', t0_uniques,
-            't1_uniques', t1_uniques
-        )) FROM map_aggregates), '[]'::json
-    )
-) AS final_result;
+SQL_FAST_MAPS_QUERY = text("""
+SELECT 
+    instance_id,
+    area_name,
+    to_char(updated_at, 'DD.MM.YYYY HH24:MI') as updated_at_str,
+    uniques
+FROM map_drops
+WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
+  AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
+ORDER BY updated_at DESC
+LIMIT :maps_num;
 """)
 
-async def get_analytics_from_db(
+async def get_raw_maps_from_db(
     db: AsyncSession, 
     maps_num: int,
-    t0_items: list[str] | set[str],
-    t1_items: list[str] | set[str],
     date_from: Optional[date] = None,
     date_to: Optional[date] = None
-) -> dict:
+):
     start_dt = datetime.combine(date_from, time.min) if date_from else None
     end_dt = datetime.combine(date_to, time.max) if date_to else None
 
     result = await db.execute(
-        SQL_FULL_ANALYTICS_QUERY,
+        SQL_FAST_MAPS_QUERY,
         {
             "maps_num": maps_num,
             "start_dt": start_dt,
             "end_dt": end_dt,
-            "t0_items": list(t0_items), 
-            "t1_items": list(t1_items),
         }
     )
-    return result.scalar_one()
+    return result.all()

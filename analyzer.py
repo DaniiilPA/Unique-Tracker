@@ -1,7 +1,9 @@
+from collections import Counter
 from datetime import date
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from depends import get_analytics_from_db
+
+from depends import get_raw_maps_from_db
 from pydantic_schemas import FullAnalyticsResponse
 
 T0_ITEMS = {"Bino's Kitchen Knife", "Bloodseeker", "Defiance of Destiny", "Divinarius", "Ephemeral Edge", "Essentia Sanguis", "Headhunter", "Jiquani's Potential", "Kalandra's Touch", "Lioneye's Glare",
@@ -24,13 +26,49 @@ async def transform_db_records_to_analytics(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None
 ) -> FullAnalyticsResponse:
+    raw_rows = await get_raw_maps_from_db(db, maps_num, date_from, date_to)
 
-    raw_analytics = await get_analytics_from_db(
-        db=db,
-        maps_num=maps_num,
-        t0_items=T0_ITEMS,
-        t1_items=T1_ITEMS,
-        date_from=date_from,
-        date_to=date_to
-    )
-    return FullAnalyticsResponse.model_validate(raw_analytics)
+    grand_total = 0
+    t0_grand = Counter()
+    t1_grand = Counter()
+    rows = []
+
+    for _, area_name, updated_at_str, uniques in raw_rows:
+        if not uniques:
+            uniques = {}
+
+        total_map_uniques = len(uniques)
+        grand_total += total_map_uniques
+
+        t0_map = Counter()
+        t1_map = Counter()
+
+        for item_data in uniques.values():
+            item_name = item_data[1] if isinstance(item_data, list) and len(item_data) > 1 else None
+            
+            if not item_name:
+                continue
+
+            if item_name in T0_ITEMS:
+                t0_map[item_name] += 1
+                t0_grand[item_name] += 1
+            elif item_name in T1_ITEMS:
+                t1_map[item_name] += 1
+                t1_grand[item_name] += 1
+
+        rows.append({
+            "map_name": area_name,
+            "updated_at": updated_at_str,
+            "total_uniques": total_map_uniques,
+            "t0_uniques": dict(t0_map),
+            "t1_uniques": dict(t1_map)
+        })
+
+    payload = {
+        "grand_total": grand_total,
+        "t0_grand_total": dict(t0_grand),
+        "t1_grand_total": dict(t1_grand),
+        "rows": rows
+    }
+
+    return FullAnalyticsResponse.model_validate(payload)

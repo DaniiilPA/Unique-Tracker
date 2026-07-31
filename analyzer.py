@@ -1,5 +1,9 @@
-from pydantic_schemas import MapAnalyticsRow, FullAnalyticsResponse
-from depends import MapDrop
+from datetime import date
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from depends import get_analytics_from_db
+from pydantic_schemas import FullAnalyticsResponse
+
 T0_ITEMS = {"Bino's Kitchen Knife", "Bloodseeker", "Defiance of Destiny", "Divinarius", "Ephemeral Edge", "Essentia Sanguis", "Headhunter", "Jiquani's Potential", "Kalandra's Touch", "Lioneye's Glare",
             "Mageblood", "Marohi Erqi", "Rakiata's Dance", "Reefbane", "Soul Taker", "The Squire", "Varunastra", "Voltaxic Rift"
             }
@@ -14,38 +18,19 @@ T1_ITEMS = {"Abberath's Hooves", "Arakaali's Fang", "Dialla's Malefaction", "Ecl
             "The Poet's Pen", "Thunderfist", "Unending Hunger", "Unnatural Instinct", "Utula's Hunger", "Void Battery", "Voll's Devotion", "Warrior's Legacy", "Windripper", "Witchbane", "Willclash"
             }
 
-def transform_db_records_to_analytics(records: list[MapDrop]) -> FullAnalyticsResponse:
-    analytics_rows = []
-    grand_total = 0
-    t0_total_grand = {}
-    t1_total_grand = {}
-    
-    for record in records:
-        uniques_dict: dict = record.uniques
-        
-        t0 = {}
-        t1 = {}
-        total_count = len(uniques_dict)
-        
-        for item_id, item_info in uniques_dict.items():
-            item_name = item_info[1]
-            
-            if item_name in T0_ITEMS:
-                t0[item_name] = t0.get(item_name, 0) + 1
-                t0_total_grand[item_name] = t0_total_grand.get(item_name, 0) + 1
-            elif item_name in T1_ITEMS:
-                t1[item_name] = t1.get(item_name, 0) + 1
-                t1_total_grand[item_name] = t1_total_grand.get(item_name, 0) + 1
-                
-        analytics_rows.append(
-            MapAnalyticsRow(
-                map_name=record.area_name,
-                updated_at=record.updated_at.strftime("%d.%m.%Y %H:%M"),
-                total_uniques=total_count,
-                t0_uniques=t0,
-                t1_uniques=t1
-            )
-        )
-        grand_total += total_count
-        
-    return FullAnalyticsResponse(grand_total=grand_total, t0_grand_total=t0_total_grand, t1_grand_total=t1_total_grand, rows=analytics_rows)
+async def transform_db_records_to_analytics(
+    db: AsyncSession,
+    maps_num: int,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None
+) -> FullAnalyticsResponse:
+
+    raw_analytics = await get_analytics_from_db(
+        db=db,
+        maps_num=maps_num,
+        t0_items=T0_ITEMS,
+        t1_items=T1_ITEMS,
+        date_from=date_from,
+        date_to=date_to
+    )
+    return FullAnalyticsResponse.model_validate(raw_analytics)

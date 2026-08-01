@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/api/stats", response_model=FullAnalyticsResponse)
 async def give_stats(
-    maps: int = Query(..., gt=0),
+    maps: int = Query(..., ge=0),
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),

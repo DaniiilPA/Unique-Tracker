@@ -1,5 +1,5 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/api/stats", response_model=FullAnalyticsResponse)
 async def give_stats(
-    maps: int,
+    maps: int = Query(..., gt=0),
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),

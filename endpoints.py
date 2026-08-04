@@ -29,7 +29,11 @@ async def give_stats(
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
 @router.post("/api/drops")
-async def receive_drops(data: UniqueDropPayLoad, db: AsyncSession = Depends(get_db), _: str = Security(verify_api_key)):
+async def receive_drops(
+    data: UniqueDropPayLoad, 
+    db: AsyncSession = Depends(get_db), 
+    _: str = Security(verify_api_key)
+):
     try:    
         await save_or_merge_drops(
             db=db, 

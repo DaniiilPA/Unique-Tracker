@@ -59,18 +59,18 @@ async def save_or_merge_drops(db: AsyncSession, instance_id: int, area_name: str
     await db.execute(upsert_stmt)
     
     
-SQL_FAST_MAPS_QUERY = text("""
-SELECT 
-    instance_id,
-    area_name,
-    to_char(updated_at, 'DD.MM.YYYY HH24:MI') as updated_at_str,
-    uniques
-FROM map_drops
-WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
-  AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
-ORDER BY updated_at DESC
-LIMIT CASE WHEN :maps_num > 0 THEN :maps_num ELSE NULL END;
-""")
+# SQL_FAST_MAPS_QUERY = text("""
+# SELECT 
+#     instance_id,
+#     area_name,
+#     to_char(updated_at, 'DD.MM.YYYY HH24:MI') as updated_at_str,
+#     uniques
+# FROM map_drops
+# WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
+#   AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
+# ORDER BY updated_at DESC
+# LIMIT CASE WHEN :maps_num > 0 THEN :maps_num ELSE NULL END;
+# """)
 
 async def stream_raw_maps_from_db(
     db: AsyncSession, 
@@ -79,17 +79,25 @@ async def stream_raw_maps_from_db(
     date_to: Optional[date] = None,
     chunk_size: int = 1000
 ):
-    start_dt = datetime.combine(date_from, time.min) if date_from else None
-    end_dt = datetime.combine(date_to, time.max) if date_to else None
+    stmt = select(
+        MapDrop.instance_id,
+        MapDrop.area_name,
+        func.to_char(MapDrop.updated_at, 'DD.MM.YYYY HH24:MI').label("updated_at_str"),
+        MapDrop.uniques
+    ).order_by(MapDrop.updated_at.desc())
 
-    result = await db.stream(
-        SQL_FAST_MAPS_QUERY,
-        {
-            "maps_num": maps_num,
-            "start_dt": start_dt,
-            "end_dt": end_dt,
-        }
-    )
+    if date_from:
+        start_dt = datetime.combine(date_from, time.min)
+        stmt = stmt.where(MapDrop.updated_at >= start_dt)
+        
+    if date_to:
+        end_dt = datetime.combine(date_to, time.max)
+        stmt = stmt.where(MapDrop.updated_at <= end_dt)
+
+    if maps_num > 0:
+        stmt = stmt.limit(maps_num)
+        
+    result = await db.stream(stmt)
 
     async for partition in result.partitions(chunk_size):
         yield partition

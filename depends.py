@@ -57,20 +57,6 @@ async def save_or_merge_drops(db: AsyncSession, instance_id: int, area_name: str
         }
     )
     await db.execute(upsert_stmt)
-    
-    
-# SQL_FAST_MAPS_QUERY = text("""
-# SELECT 
-#     instance_id,
-#     area_name,
-#     to_char(updated_at, 'DD.MM.YYYY HH24:MI') as updated_at_str,
-#     uniques
-# FROM map_drops
-# WHERE (CAST(:start_dt AS TIMESTAMP) IS NULL OR updated_at >= CAST(:start_dt AS TIMESTAMP))
-#   AND (CAST(:end_dt AS TIMESTAMP) IS NULL OR updated_at <= CAST(:end_dt AS TIMESTAMP))
-# ORDER BY updated_at DESC
-# LIMIT CASE WHEN :maps_num > 0 THEN :maps_num ELSE NULL END;
-# """)
 
 async def stream_raw_maps_from_db(
     db: AsyncSession, 
